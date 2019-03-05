@@ -10,6 +10,7 @@ import { time as uniqid } from 'uniqid'
 import * as fragments from '../../graphql/fragments'
 import { MessageBoxMutation, FullChat, Message } from '../../graphql/types'
 import { useMe } from '../../services/auth.service'
+import { createHelpers } from '../../helpers/cache'
 
 const Style = styled.div`
   display: flex;
@@ -63,64 +64,61 @@ export default ({ chatId }: MessageBoxProps) => {
   const [message, setMessage] = useState('')
   const me = useMe()
 
-  const addMessage = useMutation<MessageBoxMutation.Mutation, MessageBoxMutation.Variables>(
-    mutation,
-    {
-      variables: {
-        chatId,
-        content: message,
-      },
-      optimisticResponse: {
-        __typename: 'Mutation',
-        addMessage: {
-          id: uniqid(),
-          __typename: 'Message',
-          chat: {
-            id: chatId,
-            __typename: 'Chat',
-          },
-          sender: {
-            id: me.id,
-            __typename: 'User',
-            name: me.name,
-          },
-          content: message,
-          createdAt: new Date(),
-          type: 0,
-          recipients: [],
-          ownership: true,
+  const addMessage = useMutation<
+    MessageBoxMutation.Mutation,
+    MessageBoxMutation.Variables
+  >(mutation, {
+    variables: {
+      chatId,
+      content: message,
+    },
+    optimisticResponse: {
+      __typename: 'Mutation',
+      addMessage: {
+        id: uniqid(),
+        __typename: 'Message',
+        chat: {
+          id: chatId,
+          __typename: 'Chat',
         },
-      },
-      update: (client, { data: { addMessage } }) => {
-        client.writeFragment({
-          id: defaultDataIdFromObject(addMessage),
-          fragment: fragments.message,
-          data: addMessage,
-        })
-
-        let fullChat
-        try {
-          fullChat = client.readFragment<FullChat.Fragment>({
-            id: defaultDataIdFromObject(addMessage.chat),
-            fragment: fragments.fullChat,
-            fragmentName: 'FullChat',
-          })
-        } catch (e) {}
-
-        if (fullChat && !fullChat.messages.some(message => message.id === addMessage.id)) {
-          fullChat.messages.push(addMessage)
-          fullChat.lastMessage = addMessage
-
-          client.writeFragment({
-            id: defaultDataIdFromObject(addMessage.chat),
-            fragment: fragments.fullChat,
-            fragmentName: 'FullChat',
-            data: fullChat,
-          })
-        }
+        sender: {
+          id: me.id,
+          __typename: 'User',
+          name: me.name,
+        },
+        content: message,
+        createdAt: new Date(),
+        type: 0,
+        recipients: [],
+        ownership: true,
       },
     },
-  )
+    update: (cache, { data: { addMessage } }) => {
+      const { patchFragment } = createHelpers(cache)
+
+      cache.writeFragment({
+        id: defaultDataIdFromObject(addMessage),
+        fragment: fragments.message,
+        data: addMessage,
+      })
+
+      try {
+        patchFragment<FullChat.Fragment>(
+          {
+            id: defaultDataIdFromObject(addMessage.chat),
+            fragment: fragments.fullChat,
+            fragmentName: 'FullChat',
+          },
+          data => {
+            if (!data.messages.some(msg => msg.id === addMessage.id)) {
+              data.messages.push(addMessage);
+              data.lastMessage = addMessage;
+            }
+          },
+        )
+      } catch (e) {}
+    },
+  });
 
   const onKeyPress = e => {
     if (e.charCode === 13) {
@@ -129,7 +127,7 @@ export default ({ chatId }: MessageBoxProps) => {
   }
 
   const onChange = ({ target }) => {
-    setMessage(target.value)
+    setMessage(target.value);
   }
 
   const submitMessage = () => {

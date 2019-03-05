@@ -16,6 +16,7 @@ import styled from 'styled-components'
 import * as fragments from '../../graphql/fragments'
 import * as queries from '../../graphql/queries'
 import { ChatNavbarMutation, ChatNavbarQuery, Chats } from '../../graphql/types'
+import { createHelpers } from '../../helpers/cache';
 
 const Style = styled.div`
   padding: 0;
@@ -86,45 +87,36 @@ export default ({ chatId, history }: ChatNavbarProps) => {
   } = useQuery<ChatNavbarQuery.Query, ChatNavbarQuery.Variables>(query, {
     variables: { chatId },
     suspend: true,
-  })
-  const removeChat = useMutation<ChatNavbarMutation.Mutation, ChatNavbarMutation.Variables>(
-    mutation,
-    {
-      variables: { chatId },
-      update: (client, { data: { removeChat } }) => {
-        client.writeFragment({
-          id: defaultDataIdFromObject({
-            __typename: 'Chat',
-            id: removeChat,
-          }),
-          fragment: fragments.chat,
-          fragmentName: 'Chat',
-          data: null,
+  });
+  const removeChat = useMutation<
+    ChatNavbarMutation.Mutation,
+    ChatNavbarMutation.Variables
+  >(mutation, {
+    variables: { chatId },
+    update: (cache, { data: { removeChat } }) => {
+      const { patchQuery } = createHelpers(cache)
+      
+      cache.writeFragment({
+        id: defaultDataIdFromObject({
+          __typename: 'Chat',
+          id: removeChat,
+        }),
+        fragment: fragments.chat,
+        fragmentName: 'Chat',
+        data: null,
+      })
+
+      try {
+        patchQuery<Chats.Query>({ query: queries.chats }, data => {
+          data.chats = data.chats.filter(chat => chat.id !== removeChat)
         })
-
-        let chats
-        try {
-          chats = client.readQuery<Chats.Query>({
-            query: queries.chats,
-          }).chats
-        } catch (e) {}
-
-        if (chats && chats.some(chat => chat.id === removeChat)) {
-          const index = chats.findIndex(chat => chat.id === removeChat)
-          chats.splice(index, 1)
-
-          client.writeQuery({
-            query: queries.chats,
-            data: { chats },
-          })
-        }
-      },
+      } catch (e) {}
     },
-  )
+  });
   const [popped, setPopped] = useState(false)
 
   const navToChats = () => {
-    history.push('/chats')
+    history.push('/chats');
   }
 
   const navToGroupDetails = () => {
@@ -135,7 +127,7 @@ export default ({ chatId, history }: ChatNavbarProps) => {
   const handleRemoveChat = () => {
     setPopped(false)
     removeChat().then(navToChats)
-  }
+  };
 
   return (
     <Style className={name}>

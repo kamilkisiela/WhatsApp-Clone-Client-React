@@ -19,6 +19,7 @@
     "apollo-utilities": "1.2.1",
     "graphql": "14.1.1",
     "graphql-tag": "2.10.1",
+    "immer": "^2.1.0",
     "moment": "2.24.0",
     "prettier": "1.16.4",
     "react": "16.8.3",

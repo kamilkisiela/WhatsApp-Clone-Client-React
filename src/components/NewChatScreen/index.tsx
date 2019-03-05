@@ -15,6 +15,7 @@ import Navbar from '../Navbar'
 import UsersList from '../UsersList'
 import NewChatNavbar from './NewChatNavbar'
 import NewGroupButton from './NewGroupButton'
+import { createHelpers } from '../../helpers/cache'
 
 const Style = styled.div`
   .UsersList {
@@ -39,35 +40,37 @@ const mutation = gql`
 export default ({ history }: RouteComponentProps) => {
   const me = useMe()
 
-  const addChat = useMutation<NewChatScreenMutation.Mutation, NewChatScreenMutation.Variables>(
-    mutation,
-    {
-      update: (client, { data: { addChat } }) => {
-        client.writeFragment({
-          id: defaultDataIdFromObject(addChat),
-          fragment: fragments.chat,
-          fragmentName: 'Chat',
-          data: addChat,
-        })
+  const addChat = useMutation<
+    NewChatScreenMutation.Mutation,
+    NewChatScreenMutation.Variables
+  >(mutation, {
+    update: (cache, { data: { addChat } }) => {
+      const { patchQuery } = createHelpers(cache)
 
-        let chats
-        try {
-          chats = client.readQuery<Chats.Query>({
+      cache.writeFragment({
+        id: defaultDataIdFromObject(addChat),
+        fragment: fragments.chat,
+        fragmentName: 'Chat',
+        data: addChat,
+      })
+
+      try {
+        patchQuery<Chats.Query>(
+          {
             query: queries.chats,
-          }).chats
-        } catch (e) {}
-
-        if (chats && !chats.some(chat => chat.id === addChat.id)) {
-          chats.unshift(addChat)
-
-          client.writeQuery({
-            query: queries.chats,
-            data: { chats },
-          })
-        }
-      },
+          },
+          data => {
+            if (
+              data.chats &&
+              !data.chats.some(chat => chat.id === addChat.id)
+            ) {
+              data.chats.unshift(addChat)
+            }
+          },
+        );
+      } catch (e) {}
     },
-  )
+  });
 
   const onUserPick = user => {
     addChat({
@@ -90,7 +93,7 @@ export default ({ history }: RouteComponentProps) => {
     }).then(({ data: { addChat } }) => {
       history.push(`/chats/${addChat.id}`)
     })
-  }
+  };
 
   return (
     <Style className="NewChatScreen Screen">

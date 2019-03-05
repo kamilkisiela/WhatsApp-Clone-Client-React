@@ -8,39 +8,44 @@ import {
   Message,
   Chats,
   FullChat,
-  User,
   Users,
   UserAdded,
   UserUpdated,
   ChatAdded
 } from "../graphql/types";
 import { useSubscription } from "../polyfills/react-apollo-hooks";
+import { createHelpers } from "../helpers/cache";
 
 export const useSubscriptions = () => {
   useSubscription<ChatAdded.Subscription>(subscriptions.chatAdded, {
-    onSubscriptionData: ({ client, subscriptionData: { chatAdded } }) => {
-      client.writeFragment({
+    onSubscriptionData: ({
+      client: cache,
+      subscriptionData: { chatAdded }
+    }) => {
+      const { patchQuery } = createHelpers(cache);
+
+      cache.writeFragment({
         id: defaultDataIdFromObject(chatAdded),
         fragment: fragments.chat,
         fragmentName: "Chat",
         data: chatAdded
       });
 
-      let chats;
       try {
-        chats = client.readQuery<Chats.Query>({
-          query: queries.chats
-        }).chats;
+        patchQuery<Chats.Query>(
+          {
+            query: queries.chats
+          },
+          data => {
+            if (
+              data.chats &&
+              !data.chats.some(chat => chat.id === chatAdded.id)
+            ) {
+              data.chats.unshift(chatAdded);
+            }
+          }
+        );
       } catch (e) {}
-
-      if (chats && !chats.some(chat => chat.id === chatAdded.id)) {
-        chats.unshift(chatAdded);
-
-        client.writeQuery({
-          query: queries.chats,
-          data: { chats }
-        });
-      }
     }
   });
 
@@ -56,82 +61,82 @@ export const useSubscriptions = () => {
   });
 
   useSubscription<MessageAdded.Subscription>(subscriptions.messageAdded, {
-    onSubscriptionData: ({ client, subscriptionData: { messageAdded } }) => {
-      client.writeFragment<Message.Fragment>({
+    onSubscriptionData: ({
+      client: cache,
+      subscriptionData: { messageAdded }
+    }) => {
+      const { patchFragment, patchQuery } = createHelpers(cache);
+
+      cache.writeFragment<Message.Fragment>({
         id: defaultDataIdFromObject(messageAdded),
         fragment: fragments.message,
         data: messageAdded
       });
 
-      let fullChat;
       try {
-        fullChat = client.readFragment<FullChat.Fragment>({
-          id: defaultDataIdFromObject(messageAdded.chat),
-          fragment: fragments.fullChat,
-          fragmentName: "FullChat"
-        });
+        patchFragment<FullChat.Fragment>(
+          {
+            id: defaultDataIdFromObject(messageAdded.chat),
+            fragment: fragments.fullChat,
+            fragmentName: "FullChat"
+          },
+          data => {
+            if (
+              data &&
+              !data.messages.some(message => message.id === messageAdded.id)
+            ) {
+              data.messages.push(messageAdded);
+              data.lastMessage = messageAdded;
+            }
+          }
+        );
       } catch (e) {}
 
-      if (
-        fullChat &&
-        !fullChat.messages.some(message => message.id === messageAdded.id)
-      ) {
-        fullChat.messages.push(messageAdded);
-        fullChat.lastMessage = messageAdded;
-
-        client.writeFragment({
-          id: defaultDataIdFromObject(fullChat),
-          fragment: fragments.fullChat,
-          fragmentName: "FullChat",
-          data: fullChat
-        });
-      }
-
-      let chats;
       try {
-        chats = client.readQuery<Chats.Query>({
-          query: queries.chats
-        }).chats;
+        patchQuery<Chats.Query>(
+          {
+            query: queries.chats
+          },
+          data => {
+            const index = data.chats.findIndex(
+              c => c.id !== messageAdded.chat.id
+            );
+            const chat = data.chats[index];
+
+            chat.lastMessage = messageAdded;
+            data.chats.splice(index, 1);
+            data.chats.unshift(chat);
+          }
+        );
       } catch (e) {}
-
-      if (chats) {
-        const index = chats.findIndex(chat => chat.id === messageAdded.chat.id);
-        const chat = chats[index];
-        chat.lastMessage = messageAdded;
-        chats.splice(index, 1);
-        chats.unshift(chat);
-
-        client.writeQuery({
-          query: queries.chats,
-          data: { chats }
-        });
-      }
     }
   });
 
   useSubscription<UserAdded.Subscription>(subscriptions.userAdded, {
     onSubscriptionData: ({ client, subscriptionData: { userAdded } }) => {
+      const { patchQuery } = createHelpers(client);
+
       client.writeFragment({
         id: defaultDataIdFromObject(userAdded),
         fragment: fragments.user,
         data: userAdded
       });
 
-      let users;
       try {
-        users = client.readQuery<Users.Query>({
-          query: queries.users
-        }).users;
+        patchQuery<Users.Query>(
+          {
+            query: queries.users
+          },
+          data => {
+            if (
+              data.users &&
+              !data.users.some(user => user.id === userAdded.id)
+            ) {
+              data.users.push(userAdded);
+            }
+          }
+        );
       } catch (e) {}
-
-      if (users && !users.some(user => user.id === userAdded.id)) {
-        users.push(userAdded);
-
-        client.writeQuery({
-          query: queries.users,
-          data: { users }
-        });
-      }
     }
   });
 

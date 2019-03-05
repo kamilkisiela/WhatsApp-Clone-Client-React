@@ -20,7 +20,6 @@ const Style = styled.div`
     display: block;
     margin: auto;
     margin-top: 50px;
-
     img {
       object-fit: cover;
       border-radius: 50%;
@@ -28,7 +27,6 @@ const Style = styled.div`
       width: 300px;
       height: 300px;
     }
-
     svg {
       float: right;
       font-size: 30px;
@@ -38,13 +36,11 @@ const Style = styled.div`
       cursor: pointer;
     }
   }
-
   .SettingsForm-name-input {
     display: block;
     margin: auto;
     width: calc(100% - 50px);
     margin-top: 50px;
-
     > div {
       width: 100%;
     }

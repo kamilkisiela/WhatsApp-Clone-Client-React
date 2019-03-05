@@ -11,6 +11,7 @@ import * as fragments from '../../graphql/fragments'
 import * as queries from '../../graphql/queries'
 import { Chats, User, CompleteGroupButtonMutation } from '../../graphql/types'
 import { useMe } from '../../services/auth.service'
+import { createHelpers } from '../../helpers/cache'
 
 const Style = styled.div`
   position: fixed;
@@ -25,7 +26,7 @@ const Style = styled.div`
     background-color: var(--secondary-bg);
     color: white;
   }
-`
+`;
 
 const mutation = gql`
   mutation CompleteGroupButtonMutation(
@@ -47,7 +48,12 @@ interface CompleteGroupButtonProps {
   groupPicture: string
 }
 
-export default ({ history, users, groupName, groupPicture }: CompleteGroupButtonProps) => {
+export default ({
+  history,
+  users,
+  groupName,
+  groupPicture,
+}: CompleteGroupButtonProps) => {
   const me = useMe()
 
   const addGroup = useMutation<
@@ -72,31 +78,28 @@ export default ({ history, users, groupName, groupPicture }: CompleteGroupButton
       groupName,
       groupPicture,
     },
-    update: (client, { data: { addGroup } }) => {
-      client.writeFragment({
+    update: (cache, { data: { addGroup } }) => {
+      const { patchQuery } = createHelpers(cache)
+
+      cache.writeFragment({
         id: defaultDataIdFromObject(addGroup),
         fragment: fragments.chat,
         fragmentName: 'Chat',
         data: addGroup,
       })
 
-      let chats
       try {
-        chats = client.readQuery<Chats.Query>({
-          query: queries.chats,
-        }).chats
+        patchQuery<Chats.Query>(
+          {
+            query: queries.chats,
+          },
+          data => {
+            data.chats.unshift(addGroup);
+          },
+        )
       } catch (e) {}
-
-      if (chats && !chats.some(chat => chat.id === addGroup.id)) {
-        chats.unshift(addGroup)
-
-        client.writeQuery({
-          query: queries.chats,
-          data: { chats },
-        })
-      }
     },
-  })
+  });
 
   const onClick = () => {
     addGroup().then(({ data: { addGroup } }) => {
