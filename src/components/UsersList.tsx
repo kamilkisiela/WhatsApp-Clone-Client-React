@@ -1,13 +1,13 @@
-import List from '@material-ui/core/List'
-import ListItem from '@material-ui/core/ListItem'
-import CheckCircle from '@material-ui/icons/CheckCircle'
-import gql from 'graphql-tag'
-import * as React from 'react'
-import { useState } from 'react'
-import { useQuery } from 'react-apollo-hooks'
-import styled from 'styled-components'
-import * as fragments from '../graphql/fragments'
-import { UsersListQuery, User } from '../graphql/types'
+import List from "@material-ui/core/List";
+import ListItem from "@material-ui/core/ListItem";
+import CheckCircle from "@material-ui/icons/CheckCircle";
+import gql from "graphql-tag";
+import * as React from "react";
+import { useState } from "react";
+import { useQuery } from "react-apollo-hooks";
+import styled from "styled-components";
+import * as fragments from "../graphql/fragments";
+import { UsersListQuery, User } from "../graphql/types";
 
 const Style = styled.div`
   .UsersList-users-list {
@@ -18,7 +18,7 @@ const Style = styled.div`
     position: relative;
     padding: 7.5px 15px;
     display: flex;
-    ${props => props.selectable && 'cursor: pointer;'}
+    ${props => props.selectable && "cursor: pointer;"}
   }
 
   .UsersList-profile-pic {
@@ -41,7 +41,7 @@ const Style = styled.div`
     background-color: white;
     border-radius: 50%;
   }
-`
+`;
 
 const query = gql`
   query UsersListQuery {
@@ -50,12 +50,12 @@ const query = gql`
     }
   }
   ${fragments.user}
-`
+`;
 
 interface UsersListProps {
-  selectable?: boolean
-  onSelectionChange?: (users: User.Fragment[]) => void
-  onUserPick?: (user: User.Fragment) => void
+  selectable?: boolean;
+  onSelectionChange?: (users: User.Fragment[]) => void;
+  onUserPick?: (user: User.Fragment) => void;
 }
 
 export default (props: UsersListProps) => {
@@ -63,29 +63,29 @@ export default (props: UsersListProps) => {
     selectable: false,
     onSelectionChange: () => {},
     onUserPick: () => {},
-    ...props,
-  }
+    ...props
+  };
 
-  const [selectedUsers, setSelectedUsers] = useState([])
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const {
-    data: { users },
-  } = useQuery<UsersListQuery.Query>(query, { suspend: true })
+    data: { users }
+  } = useQuery<UsersListQuery.Query>(query, { suspend: true });
 
   const onListItemClick = user => {
     if (!selectable) {
-      return onUserPick(user)
+      return onUserPick(user);
     }
 
     if (selectedUsers.includes(user)) {
-      const index = selectedUsers.indexOf(user)
-      selectedUsers.splice(index, 1)
+      const index = selectedUsers.indexOf(user);
+      selectedUsers.splice(index, 1);
     } else {
-      selectedUsers.push(user)
+      selectedUsers.push(user);
     }
 
-    setSelectedUsers(selectedUsers)
-    onSelectionChange(selectedUsers)
-  }
+    setSelectedUsers(selectedUsers);
+    onSelectionChange(selectedUsers);
+  };
 
   return (
     <Style className="UsersList" selectable={selectable}>
@@ -99,14 +99,16 @@ export default (props: UsersListProps) => {
           >
             <img
               className="UsersList-profile-pic"
-              src={user.picture || '/assets/default-profile-pic.jpg'}
+              src={user.picture || "/assets/default-profile-pic.jpg"}
             />
             <div className="UsersList-name">{user.name}</div>
 
-            {selectedUsers.includes(user) && <CheckCircle className="UsersList-checkmark" />}
+            {selectedUsers.includes(user) && (
+              <CheckCircle className="UsersList-checkmark" />
+            )}
           </ListItem>
         ))}
       </List>
     </Style>
-  )
-}
+  );
+};

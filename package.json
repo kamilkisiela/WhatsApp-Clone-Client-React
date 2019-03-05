@@ -20,6 +20,7 @@
     "graphql": "14.1.1",
     "graphql-tag": "2.10.1",
     "moment": "2.24.0",
+    "prettier": "1.16.4",
     "react": "16.8.3",
     "react-apollo-hooks": "0.4.3",
     "react-dom": "16.8.3",
@@ -46,6 +47,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "format": "prettier src/**/*.{ts,tsx} --write",
     "generate": "gql-gen",
     "generate:watch": "nodemon --exec yarn generate -e graphql"
   },
