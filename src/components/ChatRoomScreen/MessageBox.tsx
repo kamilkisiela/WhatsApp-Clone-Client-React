@@ -71,17 +71,13 @@ export default ({ chatId }: MessageBoxProps) => {
         content: message,
       },
       optimisticResponse: {
-        __typename: 'Mutation',
         addMessage: {
           id: uniqid(),
-          __typename: 'Message',
           chat: {
             id: chatId,
-            __typename: 'Chat',
           },
           sender: {
             id: me.id,
-            __typename: 'User',
             name: me.name,
           },
           content: message,
@@ -91,35 +87,16 @@ export default ({ chatId }: MessageBoxProps) => {
           ownership: true,
         },
       },
-      update: (client, { data: { addMessage } }) => {
-        client.writeFragment({
-          id: defaultDataIdFromObject(addMessage),
-          fragment: fragments.message,
-          data: addMessage,
-        })
-
-        let fullChat
-        try {
-          fullChat = client.readFragment<FullChat.Fragment>({
-            id: defaultDataIdFromObject(addMessage.chat),
-            fragment: fragments.fullChat,
-            fragmentName: 'FullChat',
-          })
-        } catch (e) {}
-
-        if (fullChat && !fullChat.messages.some(message => message.id === addMessage.id)) {
-          fullChat.messages.push(addMessage)
-          fullChat.lastMessage = addMessage
-
-          client.writeFragment({
-            id: defaultDataIdFromObject(addMessage.chat),
-            fragment: fragments.fullChat,
-            fragmentName: 'FullChat',
-            data: fullChat,
-          })
-        }
-      },
-    },
+      // update: (client, { data: { addMessage } }) => {
+      update: store => {
+        const payload = store.getRootField('addMessage');
+        const newMessage = payload.getLinkedRecord('messageEdge');
+        const chatProxy = store.get(chatId);
+        chatProxy.setValue(newMessage, 'lastMessage');
+        const conn = ConnectionHandler.getConnection(chatProxy, 'Chat_messages');
+        ConnectionHandler.insertEdgeAfter(conn, newMessage);
+      }
+    }
   )
 
   const onKeyPress = e => {

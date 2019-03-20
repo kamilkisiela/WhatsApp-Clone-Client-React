@@ -91,33 +91,12 @@ export default ({ chatId, history }: ChatNavbarProps) => {
     mutation,
     {
       variables: { chatId },
-      update: (client, { data: { removeChat } }) => {
-        client.writeFragment({
-          id: defaultDataIdFromObject({
-            __typename: 'Chat',
-            id: removeChat,
-          }),
-          fragment: fragments.chat,
-          fragmentName: 'Chat',
-          data: null,
-        })
-
-        let chats
-        try {
-          chats = client.readQuery<Chats.Query>({
-            query: queries.chats,
-          }).chats
-        } catch (e) {}
-
-        if (chats && chats.some(chat => chat.id === removeChat)) {
-          const index = chats.findIndex(chat => chat.id === removeChat)
-          chats.splice(index, 1)
-
-          client.writeQuery({
-            query: queries.chats,
-            data: { chats },
-          })
-        }
+      updater: (store) => {
+        const payload = store.getRootField('removeChat');
+        const userProxy = store.get(user.id);
+        const conn = ConnectionHandler.getConnection(userProxy, 'UserChats_chats');
+        
+        ConnectionHandler.deleteNode(conn, payload.id)
       },
     },
   )
