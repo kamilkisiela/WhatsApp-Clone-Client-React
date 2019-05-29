@@ -3,8 +3,10 @@ import { useState, useEffect, MutableRefObject } from 'react';
 export const useInfiniteScroll = ({
   ref,
   onLoadMore,
+  hasMore,
 }: {
   onLoadMore: Function;
+  hasMore: boolean;
   ref: MutableRefObject<HTMLElement>;
 }): [boolean, () => void] => {
   const [isFetching, setIsFetching] = useState(false);
@@ -29,8 +31,8 @@ export const useInfiniteScroll = ({
   }, [isFetching]);
 
   function handleScroll() {
-    if (ref.current.scrollTop === 0 && isFetching === false) {
-      // starts to fetch if scrolled to top and fetching is not in progress
+    if (ref.current.scrollTop === 0 && isFetching === false && hasMore) {
+      // starts to fetch if scrolled to top, fetching is not in progress and has more data
       setIsFetching(true);
     }
   }
