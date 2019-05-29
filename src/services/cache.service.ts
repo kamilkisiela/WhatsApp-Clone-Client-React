@@ -45,9 +45,9 @@ export const writeMessage = (client: Client, message: MessageFragment) => {
     return
   }
 
-  if (fullChat.messages.some(m => m.id === message.id)) return
+  if (fullChat.messages.messages.some(m => m.id === message.id)) return
 
-  fullChat.messages.push(message)
+  fullChat.messages.messages.push(message)
   fullChat.lastMessage = message
 
   client.writeFragment({
