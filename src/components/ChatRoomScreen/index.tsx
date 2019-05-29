@@ -103,8 +103,7 @@ export const useGetChatPrefetch = () => {
   };
 };
 
-const ChatRoomScreen = ({ history, match }) => {
-  const { params: { chatId } } = match
+const ChatRoom = ({ history, chatId }) => {
   const client = useApolloClient()
   const { after, limit } = usePagination();
   const { data: { chat }, loading: loadingChat } = useGetChatQuery({
@@ -151,6 +150,18 @@ const ChatRoomScreen = ({ history, match }) => {
       <MessageInput onSendMessage={onSendMessage} />
     </Container>
   )
+}
+
+const ChatRoomScreen = ({ history, match }) => {
+  const {
+    params: { chatId },
+  } = match;
+
+  return (
+    <ChatPaginationProvider>
+      <ChatRoom history={history} chatId={chatId} />
+    </ChatPaginationProvider>
+  );
 }
 
 export default ChatRoomScreen
