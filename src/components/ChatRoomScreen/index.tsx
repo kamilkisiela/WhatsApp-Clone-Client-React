@@ -106,7 +106,7 @@ export const useGetChatPrefetch = () => {
 const ChatRoom = ({ history, chatId }) => {
   const client = useApolloClient()
   const { after, limit, setAfter } = usePagination();
-  const { data: { chat }, loading: loadingChat } = useGetChatQuery({
+  const { data: { chat }, loading: loadingChat, fetchMore } = useGetChatQuery({
     variables: { chatId, after, limit }
   })
   const addMessage = useAddMessageMutation()
@@ -140,7 +140,30 @@ const ChatRoom = ({ history, chatId }) => {
     }
 
     // every time after changes its value, fetch more messages
-  }, [after]);
+    fetchMore({
+      variables: {
+        after,
+        limit,
+      },
+      updateQuery(prev, { fetchMoreResult }) {
+        const messages = [
+          ...fetchMoreResult.chat.messages.messages,
+          ...prev.chat.messages.messages,
+        ];
+
+        return {
+          ...prev,
+          chat: {
+            ...prev.chat,
+            messages: {
+              ...fetchMoreResult.chat.messages,
+              messages: messages
+            },
+          }
+        };
+      },
+    })
+  }, [after, limit]);
 
   if (loadingChat) return null
 
