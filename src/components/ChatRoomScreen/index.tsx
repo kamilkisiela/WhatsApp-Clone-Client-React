@@ -105,7 +105,7 @@ export const useGetChatPrefetch = () => {
 
 const ChatRoom = ({ history, chatId }) => {
   const client = useApolloClient()
-  const { after, limit } = usePagination();
+  const { after, limit, setAfter } = usePagination();
   const { data: { chat }, loading: loadingChat } = useGetChatQuery({
     variables: { chatId, after, limit }
   })
@@ -134,6 +134,14 @@ const ChatRoom = ({ history, chatId }) => {
     })
   }, [chat])
 
+  useEffect(() => {
+    if (!after) {
+      return;
+    }
+
+    // every time after changes its value, fetch more messages
+  }, [after]);
+
   if (loadingChat) return null
 
   // Chat was probably removed from cache by the subscription handler
@@ -146,7 +154,10 @@ const ChatRoom = ({ history, chatId }) => {
   return (
     <Container>
       <ChatNavbar chat={chat} history={history} />
-      <MessagesList messages={chat.messages} />
+      <MessagesList
+        messages={chat.messages.messages}
+        hasMore={chat.messages.hasMore}
+        loadMore={() => setAfter(chat.messages.cursor)} />
       <MessageInput onSendMessage={onSendMessage} />
     </Container>
   )
