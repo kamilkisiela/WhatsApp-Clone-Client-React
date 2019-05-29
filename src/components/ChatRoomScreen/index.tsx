@@ -8,7 +8,13 @@ import styled from 'styled-components'
 import ChatNavbar from './ChatNavbar'
 import MessageInput from './MessageInput'
 import MessagesList from './MessagesList'
-import { useGetChatQuery, useAddMessageMutation } from '../../graphql/types'
+import { 
+  useGetChatQuery,
+  useAddMessageMutation,
+  GetChatQuery,
+  GetChatQueryVariables,
+  GetChatDocument
+} from '../../graphql/types'
 import * as queries from '../../graphql/queries'
 import * as fragments from '../../graphql/fragments'
 import { writeMessage } from '../../services/cache.service'
@@ -37,6 +43,19 @@ const addMessageMutation = gql `
   }
   ${fragments.message}
 `
+
+export const useGetChatPrefetch = () => {
+  const client = useApolloClient();
+  
+  return (chatId: string) => {
+    client.query<GetChatQuery, GetChatQueryVariables>({
+      query: GetChatDocument,
+      variables: {
+        chatId,
+      },
+    });
+  };
+};
 
 const ChatRoomScreen = ({ history, match }) => {
   const { params: { chatId } } = match

@@ -5,6 +5,7 @@ import * as React from 'react'
 import { useCallback } from 'react'
 import styled from 'styled-components'
 import { useChatsQuery } from '../../graphql/types'
+import { useGetChatPrefetch } from '../ChatRoomScreen'
 
 const Container = styled.div `
   height: calc(100% - 56px);
@@ -60,6 +61,7 @@ const MessageDate = styled.div `
 
 const ChatsList = ({ history }) => {
   const { data: { chats = [] } } = useChatsQuery()
+  const prefetchChat = useGetChatPrefetch()
 
   const navToChat = useCallback((chat) => {
     history.push(`chats/${chat.id}`)
@@ -69,7 +71,9 @@ const ChatsList = ({ history }) => {
     <Container>
       <StyledList>
         {chats.map((chat) => (
-          <StyledListItem key={chat.id} data-testid="chat" button onClick={navToChat.bind(null, chat)}>
+          <StyledListItem key={chat.id} data-testid="chat" button onClick={navToChat.bind(null, chat)} onMouseEnter={() => {
+            prefetchChat(chat.id)
+          }}>
             <ChatPicture data-testid="picture" src={chat.picture} />
             <ChatInfo>
               <ChatName data-testid="name">{chat.name}</ChatName>
