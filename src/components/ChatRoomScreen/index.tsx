@@ -1,7 +1,7 @@
 import { defaultDataIdFromObject } from 'apollo-cache-inmemory'
 import gql from 'graphql-tag'
 import * as React from 'react'
-import { useCallback } from 'react'
+import { useCallback, useState, useContext, useEffect } from 'react'
 import { Redirect } from 'react-router-dom'
 import { useApolloClient, useQuery, useMutation } from 'react-apollo-hooks'
 import styled from 'styled-components'
@@ -43,6 +43,49 @@ const addMessageMutation = gql `
   }
   ${fragments.message}
 `
+
+const PaginationContext = React.createContext({
+  after: 0,
+  limit: 20,
+  /**
+   * Sets new cursor
+   */
+  setAfter: (after: number) => {},
+  /**
+   * Resets `after` value to its inital state (null) so 
+   */
+  reset: () => {},
+});
+
+const usePagination = () => {
+  const pagination = useContext(PaginationContext);
+
+  // Resets the pagination every time a component did unmount
+  useEffect(() => {
+    return () => {
+      pagination.reset();
+    };
+  }, []);
+
+  return pagination;
+};
+
+export const ChatPaginationProvider = ({ children }) => {
+  const [after, setAfter] = useState<number>(null);
+
+  return (
+    <PaginationContext.Provider
+      value={{
+        limit: 20,
+        after,
+        setAfter,
+        reset: () => setAfter(null),
+      }}
+    >
+      {children}
+    </PaginationContext.Provider>
+  );
+};
 
 export const useGetChatPrefetch = () => {
   const client = useApolloClient();
