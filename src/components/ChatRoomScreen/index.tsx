@@ -89,12 +89,15 @@ export const ChatPaginationProvider = ({ children }) => {
 
 export const useGetChatPrefetch = () => {
   const client = useApolloClient();
+  const { limit, after } = usePagination();
   
   return (chatId: string) => {
     client.query<GetChatQuery, GetChatQueryVariables>({
       query: GetChatDocument,
       variables: {
         chatId,
+        after,
+        limit,
       },
     });
   };
@@ -103,8 +106,9 @@ export const useGetChatPrefetch = () => {
 const ChatRoomScreen = ({ history, match }) => {
   const { params: { chatId } } = match
   const client = useApolloClient()
+  const { after, limit } = usePagination();
   const { data: { chat }, loading: loadingChat } = useGetChatQuery({
-    variables: { chatId }
+    variables: { chatId, after, limit }
   })
   const addMessage = useAddMessageMutation()
 
